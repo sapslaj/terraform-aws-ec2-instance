@@ -33,9 +33,9 @@ resource "aws_security_group" "default" {
   name        = local.security_group_name
   name_prefix = local.security_group_name == null ? local.security_group_name_prefix : null
   description = local.security_group_description
-  tags = merge({
+  tags = coalesce(var.security_group.tags, merge({
     Name = local.name
-  }, local.tags)
+  }, local.tags))
 }
 
 resource "aws_security_group_rule" "default_egress" {

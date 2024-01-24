@@ -50,9 +50,9 @@ locals {
     user_data_base64            = var.instance.user_data_base64
     user_data_replace_on_change = var.instance.user_data_replace_on_change
     volume_tags                 = coalesce(var.instance.volume_tags, local.tags)
-    tags = merge({
+    tags = coalesce(var.instance.tags, merge({
       Name = local.name
-    }, local.tags)
+    }, local.tags))
     vpc_security_group_ids = concat(
       compact([one(aws_security_group.default[*].id)]),
       var.instance.vpc_security_group_ids,

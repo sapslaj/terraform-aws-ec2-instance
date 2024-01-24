@@ -31,9 +31,9 @@ resource "aws_iam_role" "this" {
   name               = var.iam.role_name
   name_prefix        = var.iam.role_name == null ? local.iam_role_name_prefix : null
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role_policy.json
-  tags = merge({
+  tags = coalesce(var.iam.tags, merge({
     Name = local.name
-  }, local.tags)
+  }, local.tags))
 }
 
 resource "aws_iam_instance_profile" "this" {
@@ -42,9 +42,9 @@ resource "aws_iam_instance_profile" "this" {
   name        = var.iam.instance_profile_name_prefix == null ? coalesce(var.iam.instance_profile_name, local.iam_role_name) : null
   name_prefix = var.iam.instance_profile_name_prefix
   role        = local.iam_role_name
-  tags = merge({
+  tags = coalesce(var.iam.tags, merge({
     Name = local.name
-  }, local.tags)
+  }, local.tags))
 }
 
 resource "aws_iam_role_policy_attachment" "this" {

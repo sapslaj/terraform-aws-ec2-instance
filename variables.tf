@@ -81,6 +81,7 @@ variable "iam" {
     role_name_prefix             = optional(string)
     instance_profile_name        = optional(string)
     instance_profile_name_prefix = optional(string)
+    tags                         = optional(map(string))
   })
   nullable = false
   default  = {}
@@ -250,6 +251,7 @@ variable "security_group" {
     name                            = optional(string)
     name_prefix                     = optional(string)
     description                     = optional(string)
+    tags                            = optional(map(string))
     ingresses = optional(map(object({
       port                     = optional(number)
       from_port                = optional(number)
