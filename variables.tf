@@ -73,9 +73,9 @@ variable "eip" {
 
 variable "iam" {
   type = object({
-    create_role                  = optional(bool, false)
-    create_instance_profile      = optional(bool, false)
-    attach_default_policies      = optional(bool, false)
+    create_role                  = optional(bool)
+    create_instance_profile      = optional(bool)
+    attach_default_policies      = optional(bool)
     managed_policies             = optional(map(string), {})
     role_name                    = optional(string)
     role_name_prefix             = optional(string)

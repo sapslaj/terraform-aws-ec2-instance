@@ -170,12 +170,21 @@ resource "terraform_data" "ansible_ssh_provisioner_run" {
 }
 
 locals {
-  ansible_s3_provisioning                          = local.provisioning_method == "ansible_s3"
-  ansible_s3_set_hostname                          = try(var.ansible.s3.set_hostname, true)
-  ansible_s3_create_provisioning_bucket            = try(var.ansible.s3.create_provisioning_bucket, local.ansible_s3_provisioning)
-  ansible_s3_create_provisioning_bucket_objects    = try(var.ansible.s3.create_provisioning_bucket_objects, local.ansible_s3_create_provisioning_bucket)
-  ansible_s3_create_provisioning_bucket_iam_policy = try(var.ansible.s3.create_provisioning_bucket_iam_policy, local.ansible_s3_create_provisioning_bucket)
-  ansible_s3_provisioning_bucket_name_prefix       = try(var.ansible.s3.provisioning_bucket_name_prefix, "${substr(local.name, 0, 24)}-provisioning")
+  ansible_s3_provisioning = local.provisioning_method == "ansible_s3"
+  ansible_s3_set_hostname = try(var.ansible.s3.set_hostname, true)
+  ansible_s3_create_provisioning_bucket = coalesce(
+    try(var.ansible.s3.create_provisioning_bucket, null),
+    local.ansible_s3_provisioning,
+  )
+  ansible_s3_create_provisioning_bucket_objects = coalesce(
+    try(var.ansible.s3.create_provisioning_bucket_objects, null),
+    local.ansible_s3_create_provisioning_bucket,
+  )
+  ansible_s3_create_provisioning_bucket_iam_policy = coalesce(
+    try(var.ansible.s3.create_provisioning_bucket_iam_policy, null),
+    local.ansible_s3_create_provisioning_bucket,
+  )
+  ansible_s3_provisioning_bucket_name_prefix = try(var.ansible.s3.provisioning_bucket_name_prefix, "${substr(local.name, 0, 24)}-provisioning")
   ansible_s3_provisioning_bucket_name = coalesce(
     one(aws_s3_bucket.ansible_s3_provisioning[*].id),
     try(var.ansible.s3.provisioning_bucket_name, null),

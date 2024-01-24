@@ -1,8 +1,17 @@
 locals {
-  iam_create_role             = var.iam.create_role
-  iam_create_instance_profile = var.iam.create_instance_profile
-  iam_attach_default_policies = var.iam.attach_default_policies
-  iam_role_managed_policies   = var.iam.managed_policies
+  iam_create_role = coalesce(
+    var.iam.create_role,
+    local.provisioner_requires_iam_role,
+  )
+  iam_create_instance_profile = coalesce(
+    var.iam.create_instance_profile,
+    local.iam_create_role,
+  )
+  iam_attach_default_policies = coalesce(
+    var.iam.attach_default_policies,
+    local.iam_create_role,
+  )
+  iam_role_managed_policies = var.iam.managed_policies
 
   iam_role_name_prefix             = coalesce(var.iam.role_name_prefix, substr(local.name, 0, 38))
   iam_role_name                    = try(aws_iam_role.this[0].name, var.iam.role_name)
@@ -37,9 +46,13 @@ resource "aws_iam_role" "this" {
 }
 
 resource "aws_iam_instance_profile" "this" {
-  count = (local.iam_create_role && local.iam_create_instance_profile) ? 1 : 0
+  count = local.iam_create_instance_profile ? 1 : 0
 
-  name        = var.iam.instance_profile_name_prefix == null ? coalesce(var.iam.instance_profile_name, local.iam_role_name) : null
+  name = var.iam.instance_profile_name_prefix == null ? coalesce(
+    var.iam.instance_profile_name,
+    var.instance.iam_instance_profile,
+    local.iam_role_name,
+  ) : null
   name_prefix = var.iam.instance_profile_name_prefix
   role        = local.iam_role_name
   tags = coalesce(var.iam.tags, merge({

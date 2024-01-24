@@ -24,6 +24,11 @@ locals {
     ansible_ssh = true
     user_data   = false
   }[local.provisioning_method]
+  provisioner_requires_iam_role = {
+    ansible_s3  = true
+    ansible_ssh = false
+    user_data   = false
+  }[local.provisioning_method]
 
   provisioner_username = coalesce(
     var.provisioner.username,
