@@ -101,6 +101,7 @@ variable "instance" {
     id              = optional(string)
     lifecyle_ignore = optional(list(string), [])
 
+    ami                         = optional(string)
     associate_public_ip_address = optional(bool)
     availability_zone           = optional(string)
     capacity_reservation_specification = optional(object({

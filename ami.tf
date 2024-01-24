@@ -1,6 +1,10 @@
 locals {
   ami_family = var.ami.family
-  ami_lookup = var.ami.id == null
+  ami_lookup = alltrue([
+    var.instance.ami == null,
+    var.instance.launch_template == null,
+    var.ami.id == null,
+  ])
   ami_lookup_name = {
     ubuntu = ["ubuntu/images/hvm-ssd/ubuntu-${var.ami.version}-${var.ami.arch}-server-*"]
   }
@@ -30,5 +34,5 @@ data "aws_ami" "this" {
 }
 
 locals {
-  ami_id = coalesce(var.ami.id, one(data.aws_ami.this[*].id))
+  ami_id = try(coalesce(var.instance.ami, var.ami.id, one(data.aws_ami.this[*].id)), null)
 }
