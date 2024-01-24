@@ -1,5 +1,8 @@
 locals {
-  create_security_group = var.security_group.create
+  create_security_group = coalesce(
+    var.security_group.create,
+    local.provisioner_requires_provisioner_sg_rule,
+  )
   create_security_group_default_egress_rule = (
     local.create_security_group
     ? var.security_group.create_default_egress_rule

@@ -244,7 +244,7 @@ variable "provisioner" {
 
 variable "security_group" {
   type = object({
-    create                          = optional(bool, true)
+    create                          = optional(bool)
     create_default_egress_rule      = optional(bool, true)
     create_default_provisioner_rule = optional(bool)
     vpc_id                          = optional(string)
