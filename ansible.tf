@@ -88,10 +88,40 @@ resource "terraform_data" "ansible_ssh_provisioner_init" {
   }
 }
 
+resource "terraform_data" "ansible_ssh_provisioner_clean" {
+  count = local.ansible_ssh_provisioning ? 1 : 0
+  depends_on = [
+    terraform_data.ansible_ssh_provisioner_init,
+  ]
+
+  triggers_replace = merge(local.ansible_ssh_provisioner_triggers, {
+    ansible_filenames = md5(jsonencode(local.ansible_filenames))
+  })
+
+  connection {
+    user        = local.provisioner_username
+    host        = local.provisioner_host
+    private_key = local.provisioner_private_key
+    timeout     = local.provisioner_connection_timeout
+  }
+
+  provisioner "file" {
+    content = join("\n", formatlist("/var/ansible/%s", concat(
+      keys(local.ansible_filenames),
+      ["main.yml", "requirements.yml"],
+    )))
+    destination = "/tmp/ansible-filelist"
+  }
+
+  provisioner "remote-exec" {
+    script = "${path.module}/ansible_ssh_provisioner_clean.sh"
+  }
+}
+
 resource "terraform_data" "ansible_ssh_provisioner_upload" {
   for_each = local.ansible_ssh_provisioning ? local.ansible_filenames : {}
   depends_on = [
-    terraform_data.ansible_ssh_provisioner_init,
+    terraform_data.ansible_ssh_provisioner_clean,
   ]
 
   input = {
@@ -119,14 +149,6 @@ resource "terraform_data" "ansible_ssh_provisioner_upload" {
   provisioner "file" {
     source      = each.value
     destination = "/var/ansible/${each.key}"
-  }
-
-  provisioner "remote-exec" {
-    when       = destroy
-    on_failure = continue
-    inline = [
-      "rm -rf '/var/ansible/${each.key}'"
-    ]
   }
 }
 
