@@ -114,11 +114,13 @@ output "tags" {
 output "instance" {
   value = merge(
     var.instance,
-    try(aws_instance.this[0], {}),
+    try(local.instance_ref, {}),
     {
       id          = local.instance_id,
       static_data = static_data.aws_instance
       input       = local.instance_input
+      public_ip   = local.instance_public_ip
+      private_ip  = local.instance_private_ip
       access_ip   = local.instance_access_ip
     }
   )

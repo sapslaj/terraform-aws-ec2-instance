@@ -250,13 +250,40 @@ resource "aws_instance" "this" {
 }
 
 locals {
+  instance_lookup = alltrue([
+    !local.instance_create,
+    local.dns_create,
+    local.provisioner_requires_access_ip,
+  ])
   instance_id = try(
     aws_instance.this[0].id,
     var.instance.id,
   )
+}
+
+data "aws_instance" "this" {
+  count = local.instance_lookup ? 1 : 0
+
+  instance_id = local.instance_id
+}
+
+locals {
+  instance_ref = try(
+    aws_instance.this[0],
+    data.aws_instance.this[0],
+    null,
+  )
+  instance_public_ip = try(
+    aws_eip.this[0].public_ip,
+    local.instance_ref.public_ip,
+    null,
+  )
+  instance_private_ip = try(
+    local.instance_ref.private_ip,
+    null,
+  )
   instance_access_ip = try(coalesce(
-    one(aws_eip.this[*].public_ip),
-    one(aws_instance.this[*].public_ip),
-    one(aws_instance.this[*].private_ip),
+    local.instance_public_ip,
+    local.instance_private_ip,
   ), null)
 }
