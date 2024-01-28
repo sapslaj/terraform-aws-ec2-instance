@@ -73,6 +73,15 @@ locals {
   instance_input = merge(local.instance, {
     for key, value in static_data.aws_instance.output : key => jsondecode(value)
   })
+  instance_lookup = alltrue([
+    !local.instance_create,
+    local.dns_create,
+    local.provisioner_requires_access_ip,
+  ])
+  instance_id = try(
+    aws_instance.this[0].id,
+    var.instance.id,
+  )
 }
 
 resource "aws_instance" "this" {
@@ -247,18 +256,13 @@ resource "aws_instance" "this" {
       volume_type           = root_block_device.value.volume_type
     }
   }
-}
 
-locals {
-  instance_lookup = alltrue([
-    !local.instance_create,
-    local.dns_create,
-    local.provisioner_requires_access_ip,
-  ])
-  instance_id = try(
-    aws_instance.this[0].id,
-    var.instance.id,
-  )
+  lifecycle {
+    precondition {
+      condition     = local.instance.launch_template == null ? local.instance.instance_type != null : true
+      error_message = "An `instance_type` must be set if not using a launch template."
+    }
+  }
 }
 
 data "aws_instance" "this" {
