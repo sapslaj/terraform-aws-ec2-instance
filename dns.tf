@@ -8,7 +8,16 @@ locals {
   dns_type = var.dns.type
   dns_ttl  = var.dns.ttl
   dns_records = {
-    "A" = [local.instance_access_ip]
+    "A" = try(coalescelist(
+      (var.dns.public ? compact([local.instance_public_ip]) : []),
+      (var.dns.private ? compact([local.instance_private_ip]) : []),
+      [local.instance_access_ip],
+    ), null)
+    "CNAME" = try(coalescelist(
+      (var.dns.public ? compact([local.instance_ref.public_dns]) : []),
+      (var.dns.private ? compact([local.instance_ref.private_dns]) : []),
+      try([compact([local.instance_ref.public_dns, local.instance_ref.private_dns])[0]], [])
+    ), null)
   }[local.dns_type]
   dns_provider                 = var.dns.provider
   dns_provider_route53         = local.dns_provider == "route53"

@@ -48,6 +48,8 @@ variable "dns" {
     type     = optional(string, "A")
     ttl      = optional(number, 60)
     provider = optional(string, "route53")
+    public   = optional(bool, false)
+    private  = optional(bool, false)
     route53 = optional(object({
       hosted_zone_name = optional(string)
       hosted_zone_id   = optional(string)
