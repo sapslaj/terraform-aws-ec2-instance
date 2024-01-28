@@ -237,6 +237,10 @@ variable "provisioner" {
     key_name_prefix    = optional(string)
     ip_provider        = optional(string, "https://checkip.amazonaws.com")
     connection_timeout = optional(string, "1m")
+    access = optional(object({
+      use_public_ip  = optional(bool, false)
+      use_private_ip = optional(bool, false)
+    }), {})
   })
   nullable = false
   default  = {}

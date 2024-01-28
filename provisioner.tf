@@ -19,6 +19,11 @@ locals {
     ansible_ssh = true
     user_data   = false
   }[local.provisioning_method]
+  provisioner_requires_access_ip = {
+    ansible_s3  = false
+    ansible_ssh = true
+    user_data   = false
+  }[local.provisioning_method]
   provisioner_requires_provisioner_sg_rule = {
     ansible_s3  = false
     ansible_ssh = true
@@ -43,7 +48,10 @@ locals {
     provisioner_force = local.provisioner_force ? timestamp() : ""
   }
 
-  provisioner_host = local.instance_access_ip
+  provisioner_host = try(coalesce(
+    (var.provisioner.access.use_public_ip ? local.instance_public_ip : null),
+    (var.provisioner.access.use_private_ip ? local.instance_private_ip : null),
+  ), local.instance_access_ip)
 
   provisioner_instance_key_name_given = var.instance.key_name != null
   provisioner_create_key_pair = coalesce(
