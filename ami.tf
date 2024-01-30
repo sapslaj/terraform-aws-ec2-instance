@@ -34,5 +34,9 @@ data "aws_ami" "this" {
 }
 
 locals {
-  ami_id = try(coalesce(var.instance.ami, var.ami.id, one(data.aws_ami.this[*].id)), null)
+  ami_id = try(coalesce(
+    var.instance.ami,
+    var.ami.id,
+    one(data.aws_ami.this[*].id),
+  ), null)
 }

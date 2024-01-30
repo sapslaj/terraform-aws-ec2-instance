@@ -119,6 +119,7 @@ output "instance" {
       id          = local.instance_id,
       static_data = static_data.aws_instance
       input       = local.instance_input
+      input_block = local.instance_input_block
       public_ip   = local.instance_public_ip
       private_ip  = local.instance_private_ip
       access_ip   = local.instance_access_ip

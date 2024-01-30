@@ -13,10 +13,16 @@ locals {
   )
   iam_role_managed_policies = var.iam.managed_policies
 
-  iam_role_name_prefix             = coalesce(var.iam.role_name_prefix, substr(local.name, 0, 38))
-  iam_role_name                    = try(aws_iam_role.this[0].name, var.iam.role_name)
-  iam_instance_profile_name_prefix = coalesce(var.iam.instance_profile_name_prefix, local.iam_role_name_prefix)
-  iam_instance_profile_name        = try(aws_iam_instance_profile.this[0].name, var.iam.instance_profile_name)
+  iam_role_name_prefix = coalesce(var.iam.role_name_prefix, substr(local.name, 0, 38))
+  iam_role_name        = try(aws_iam_role.this[0].name, var.iam.role_name)
+  iam_instance_profile_name_prefix = coalesce(
+    var.iam.instance_profile_name_prefix,
+    local.iam_role_name_prefix,
+  )
+  iam_instance_profile_name = try(
+    aws_iam_instance_profile.this[0].name,
+    var.iam.instance_profile_name,
+  )
 
   iam_default_policies = {
     "AmazonSSMManagedInstanceCore" = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"

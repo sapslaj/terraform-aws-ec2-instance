@@ -206,7 +206,10 @@ locals {
     try(var.ansible.s3.create_provisioning_bucket_iam_policy, null),
     local.ansible_s3_create_provisioning_bucket,
   )
-  ansible_s3_provisioning_bucket_name_prefix = try(var.ansible.s3.provisioning_bucket_name_prefix, "${substr(local.name, 0, 24)}-provisioning")
+  ansible_s3_provisioning_bucket_name_prefix = try(
+    var.ansible.s3.provisioning_bucket_name_prefix,
+    "${substr(local.name, 0, 24)}-provisioning",
+  )
   ansible_s3_provisioning_bucket_name = coalesce(
     one(aws_s3_bucket.ansible_s3_provisioning[*].id),
     try(var.ansible.s3.provisioning_bucket_name, null),
@@ -236,8 +239,12 @@ check "provisioning_s3_bucket_name" {
 resource "aws_s3_bucket" "ansible_s3_provisioning" {
   count = local.ansible_s3_create_provisioning_bucket ? 1 : 0
 
-  bucket        = try(var.ansible.s3.provisioning_s3_bucket_name, null)
-  bucket_prefix = try(var.ansible.s3.provisioning_s3_bucket_name, null) == null ? local.ansible_s3_provisioning_bucket_name_prefix : null
+  bucket = try(var.ansible.s3.provisioning_s3_bucket_name, null)
+  bucket_prefix = (
+    try(var.ansible.s3.provisioning_s3_bucket_name, null) == null
+    ? local.ansible_s3_provisioning_bucket_name_prefix
+    : null
+  )
 
   force_destroy = true
   tags = merge(local.tags, {

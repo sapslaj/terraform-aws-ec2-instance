@@ -3,23 +3,39 @@ locals {
   instance_lifecyle_ignore = var.instance.lifecyle_ignore
   instance_subnet_id       = var.instance.subnet_id
   instance = {
-    ami                                  = local.ami_id
-    associate_public_ip_address          = var.instance.associate_public_ip_address
-    availability_zone                    = var.instance.availability_zone
-    capacity_reservation_specification   = var.instance.capacity_reservation_specification
-    cpu_options                          = var.instance.cpu_options
-    credit_specification                 = var.instance.credit_specification
-    disable_api_stop                     = coalesce(var.instance.disable_api_stop, !var.instance.enable_api_stop)
-    disable_api_termination              = coalesce(var.instance.disable_api_termination, !var.instance.enable_api_termination)
-    ebs_block_device                     = coalesce(var.instance.ebs_block_device, var.instance.ebs_block_devices)
-    ebs_optimized                        = var.instance.ebs_optimized
-    enclave_options                      = var.instance.enclave_options
-    ephemeral_block_device               = coalesce(var.instance.ephemeral_block_device, var.instance.ephemeral_block_devices)
-    get_password_data                    = var.instance.get_password_data
-    hibernation                          = var.instance.hibernation
-    host_id                              = var.instance.host_id
-    host_resource_group_arn              = var.instance.host_resource_group_arn
-    iam_instance_profile                 = local.iam_instance_profile_name != null ? local.iam_instance_profile_name : var.instance.iam_instance_profile
+    ami                                = local.ami_id
+    associate_public_ip_address        = var.instance.associate_public_ip_address
+    availability_zone                  = var.instance.availability_zone
+    capacity_reservation_specification = var.instance.capacity_reservation_specification
+    cpu_options                        = var.instance.cpu_options
+    credit_specification               = var.instance.credit_specification
+    disable_api_stop = coalesce(
+      var.instance.disable_api_stop,
+      !var.instance.enable_api_stop,
+    )
+    disable_api_termination = coalesce(
+      var.instance.disable_api_termination,
+      !var.instance.enable_api_termination,
+    )
+    ebs_block_device = coalesce(
+      var.instance.ebs_block_device,
+      var.instance.ebs_block_devices,
+    )
+    ebs_optimized   = var.instance.ebs_optimized
+    enclave_options = var.instance.enclave_options
+    ephemeral_block_device = coalesce(
+      var.instance.ephemeral_block_device,
+      var.instance.ephemeral_block_devices,
+    )
+    get_password_data       = var.instance.get_password_data
+    hibernation             = var.instance.hibernation
+    host_id                 = var.instance.host_id
+    host_resource_group_arn = var.instance.host_resource_group_arn
+    iam_instance_profile = (
+      local.iam_instance_profile_name != null
+      ? local.iam_instance_profile_name
+      : var.instance.iam_instance_profile
+    )
     instance_initiated_shutdown_behavior = var.instance.instance_initiated_shutdown_behavior
     instance_market_options              = var.instance.instance_market_options
     instance_type                        = var.instance.instance_type
@@ -29,11 +45,14 @@ locals {
       aws_key_pair.this[0].id,
       local.provisioner_key_name,
     )
-    launch_template            = var.instance.launch_template
-    maintenance_options        = var.instance.maintenance_options
-    metadata_options           = var.instance.metadata_options
-    monitoring                 = var.instance.monitoring
-    network_interface          = coalesce(var.instance.network_interface, var.instance.network_interfaces)
+    launch_template     = var.instance.launch_template
+    maintenance_options = var.instance.maintenance_options
+    metadata_options    = var.instance.metadata_options
+    monitoring          = var.instance.monitoring
+    network_interface = coalesce(
+      var.instance.network_interface,
+      var.instance.network_interfaces,
+    )
     placement_group            = var.instance.placement_group
     placement_partition_number = var.instance.placement_partition_number
     private_dns_name_options   = var.instance.private_dns_name_options
@@ -62,7 +81,9 @@ locals {
 
 resource "static_data" "aws_instance" {
   data = {
-    for key, value in local.instance : key => jsonencode(value) if contains(local.instance_lifecyle_ignore, key)
+    for key, value in local.instance :
+    key => jsonencode(value)
+    if contains(local.instance_lifecyle_ignore, key)
   }
   triggers = {
     instance_lifecyle_ignore = jsonencode(local.instance_lifecyle_ignore)
@@ -73,6 +94,65 @@ locals {
   instance_input = merge(local.instance, {
     for key, value in static_data.aws_instance.output : key => jsondecode(value)
   })
+  instance_input_block = merge(
+    local.instance_input,
+    {
+      # shallow single blocks
+      for key in [
+        "cpu_options",
+        "enclave_options",
+        "instance_market_options",
+        "launch_template",
+        "maintenance_options",
+        "metadata_options",
+        "private_dns_name_options",
+        "root_block_device",
+        ] : key => (
+        local.instance_input[key] == null
+        ? {}
+        : { "${key}" = local.instance_input[key] }
+      )
+    },
+    # single blocks with nested blocks
+    {
+      capacity_reservation_specification = (
+        local.instance_input.capacity_reservation_specification == null
+        ? {}
+        : {
+          capacity_reservation_specification = merge(
+            local.instance_input.capacity_reservation_specification,
+            {
+              capacity_reservation_target = (
+                local.instance_input.capacity_reservation_specification.capacity_reservation_target == null
+                ? {}
+                : {
+                  capacity_reservation_target = local.instance_input.capacity_reservation_specification.capacity_reservation_target
+                }
+              )
+            },
+          )
+        }
+      )
+      instance_market_options = (
+        local.instance_input.instance_market_options == null
+        ? {}
+        : {
+          instance_market_options = merge(
+            local.instance_input.instance_market_options,
+            {
+              spot_options = (
+                local.instance_input.instance_market_options.spot_options == null
+                ? {}
+                : {
+                  spot_options = local.instance_input.instance_market_options.spot_options
+                }
+              )
+            },
+          )
+        }
+      )
+    },
+  )
   instance_lookup = anytrue([
     local.eip.create,
     local.dns_create,
@@ -131,12 +211,12 @@ resource "aws_instance" "this" {
   vpc_security_group_ids               = local.instance_input.vpc_security_group_ids
 
   dynamic "capacity_reservation_specification" {
-    for_each = local.instance_input.capacity_reservation_specification == null ? {} : { capacity_reservation_specification = local.instance_input.capacity_reservation_specification }
+    for_each = local.instance_input_block.capacity_reservation_specification
     content {
       capacity_reservation_preference = capacity_reservation_specification.value.capacity_reservation_preference
 
       dynamic "capacity_reservation_target" {
-        for_each = capacity_reservation_specification.value.capacity_reservation_target == null ? {} : { capacity_reservation_target = capacity_reservation_specification.value.capacity_reservation_target }
+        for_each = capacity_reservation_specification.value.capacity_reservation_target
         content {
           capacity_reservation_id                 = capacity_reservation_target.value.capacity_reservation_id
           capacity_reservation_resource_group_arn = capacity_reservation_target.value.capacity_reservation_resource_group_arn
@@ -146,7 +226,7 @@ resource "aws_instance" "this" {
   }
 
   dynamic "cpu_options" {
-    for_each = local.instance_input.cpu_options == null ? {} : { cpu_options = local.instance_input.cpu_options }
+    for_each = local.instance_input_block.cpu_options
     content {
       amd_sev_snp      = cpu_options.value.amd_sev_snp
       core_count       = cpu_options.value.core_count
@@ -155,14 +235,14 @@ resource "aws_instance" "this" {
   }
 
   dynamic "credit_specification" {
-    for_each = local.instance_input.credit_specification == null ? {} : { credit_specification = local.instance_input.credit_specification }
+    for_each = local.instance_input_block.credit_specification
     content {
       cpu_credits = credit_specification.value.cpu_credits
     }
   }
 
   dynamic "ebs_block_device" {
-    for_each = local.instance_input.ebs_block_device
+    for_each = local.instance_input_block.ebs_block_device
     content {
       device_name           = coalesce(ebs_block_device.value.device_name, ebs_block_device.key)
       delete_on_termination = ebs_block_device.value.delete_on_termination
@@ -178,14 +258,14 @@ resource "aws_instance" "this" {
   }
 
   dynamic "enclave_options" {
-    for_each = local.instance_input.enclave_options == null ? {} : { enclave_options = local.instance_input.enclave_options }
+    for_each = local.instance_input_block.enclave_options
     content {
       enabled = enclave_options.value.enabled
     }
   }
 
   dynamic "ephemeral_block_device" {
-    for_each = local.instance_input.ephemeral_block_device
+    for_each = local.instance_input_block.ephemeral_block_device
     content {
       device_name  = coalesce(ephemeral_block_device.value.device_name, ephemeral_block_device.key)
       no_device    = ephemeral_block_device.value.no_device
@@ -194,12 +274,12 @@ resource "aws_instance" "this" {
   }
 
   dynamic "instance_market_options" {
-    for_each = local.instance_input.instance_market_options == null ? {} : { instance_market_options = local.instance_input.instance_market_options }
+    for_each = local.instance_input_block.instance_market_options
     content {
       market_type = instance_market_options.value.market_type
 
       dynamic "spot_options" {
-        for_each = instance_market_options.value.spot_options == null ? {} : { spot_options = instance_market_options.value.spot_options }
+        for_each = instance_market_options.value.spot_options
         content {
           instance_interruption_behavior = spot_options.value.instance_interruption_behavior
           max_price                      = spot_options.value.max_price
@@ -211,7 +291,7 @@ resource "aws_instance" "this" {
   }
 
   dynamic "launch_template" {
-    for_each = local.instance_input.launch_template == null ? {} : { launch_template = local.instance_input.launch_template }
+    for_each = local.instance_input_block.launch_template
     content {
       id      = launch_template.value.id
       name    = launch_template.value.name
@@ -220,14 +300,14 @@ resource "aws_instance" "this" {
   }
 
   dynamic "maintenance_options" {
-    for_each = local.instance_input.maintenance_options == null ? {} : { maintenance_options = local.instance_input.maintenance_options }
+    for_each = local.instance_input_block.maintenance_options
     content {
       auto_recovery = maintenance_options.value.auto_recovery
     }
   }
 
   dynamic "metadata_options" {
-    for_each = local.instance_input.metadata_options == null ? {} : { metadata_options = local.instance_input.metadata_options }
+    for_each = local.instance_input_block.metadata_options
     content {
       http_endpoint               = metadata_options.value.http_endpoint
       http_protocol_ipv6          = metadata_options.value.http_protocol_ipv6
@@ -238,7 +318,7 @@ resource "aws_instance" "this" {
   }
 
   dynamic "network_interface" {
-    for_each = local.instance_input.network_interface
+    for_each = local.instance_input_block.network_interface
     content {
       delete_on_termination = network_interface.value.delete_on_termination
       device_index          = network_interface.value.device_index
@@ -248,7 +328,7 @@ resource "aws_instance" "this" {
   }
 
   dynamic "private_dns_name_options" {
-    for_each = local.instance_input.private_dns_name_options == null ? {} : { private_dns_name_options = local.instance_input.private_dns_name_options }
+    for_each = local.instance_input_block.private_dns_name_options
     content {
       enable_resource_name_dns_aaaa_record = private_dns_name_options.value.enable_resource_name_dns_aaaa_record
       enable_resource_name_dns_a_record    = private_dns_name_options.value.enable_resource_name_dns_a_record
@@ -257,7 +337,7 @@ resource "aws_instance" "this" {
   }
 
   dynamic "root_block_device" {
-    for_each = local.instance_input.root_block_device == null ? {} : { root_block_device = local.instance_input.root_block_device }
+    for_each = local.instance_input_block.root_block_device
     content {
       delete_on_termination = root_block_device.value.delete_on_termination
       encrypted             = root_block_device.value.encrypted

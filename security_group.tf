@@ -10,7 +10,10 @@ locals {
   )
   create_security_group_default_provisioner_rule = (
     local.create_security_group
-    ? coalesce(var.security_group.create_default_provisioner_rule, local.provisioner_requires_provisioner_sg_rule)
+    ? coalesce(
+      var.security_group.create_default_provisioner_rule,
+      local.provisioner_requires_provisioner_sg_rule,
+    )
     : false
   )
 
@@ -18,7 +21,10 @@ locals {
   security_group_egresses    = local.create_security_group ? var.security_group.egresses : {}
   security_group_name        = var.security_group.name
   security_group_name_prefix = coalesce(var.security_group.name_prefix, local.name)
-  security_group_description = coalesce(var.security_group.description, "Default security group for ${local.name}")
+  security_group_description = coalesce(
+    var.security_group.description,
+    "Default security group for ${local.name}",
+  )
 
   security_group_vpc_id = try(data.aws_subnet.this[0].vpc_id, var.security_group.vpc_id)
 }
