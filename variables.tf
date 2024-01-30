@@ -68,6 +68,7 @@ variable "eip" {
     domain                    = optional(string, "vpc")
     network_border_group      = optional(string)
     public_ipv4_pool          = optional(string)
+    attach_duration           = optional(string, "10s")
   })
   nullable = false
   default  = {}

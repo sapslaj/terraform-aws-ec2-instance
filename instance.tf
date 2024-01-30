@@ -73,8 +73,8 @@ locals {
   instance_input = merge(local.instance, {
     for key, value in static_data.aws_instance.output : key => jsondecode(value)
   })
-  instance_lookup = alltrue([
-    !local.instance_create,
+  instance_lookup = anytrue([
+    local.eip.create,
     local.dns_create,
     local.provisioner_requires_access_ip,
   ])
@@ -267,14 +267,19 @@ resource "aws_instance" "this" {
 
 data "aws_instance" "this" {
   count = local.instance_lookup ? 1 : 0
+  depends_on = [
+    aws_instance.this,
+    aws_eip.this,
+    time_sleep.eip_attach,
+  ]
 
   instance_id = local.instance_id
 }
 
 locals {
   instance_ref = try(
-    aws_instance.this[0],
     data.aws_instance.this[0],
+    aws_instance.this[0],
     null,
   )
   instance_public_ip = try(

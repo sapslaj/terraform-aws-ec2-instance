@@ -7,6 +7,7 @@ locals {
     domain                    = var.eip.domain
     network_border_group      = var.eip.network_border_group
     public_ipv4_pool          = var.eip.public_ipv4_pool
+    attach_duration           = var.eip.attach_duration
     # TODO: network_interface
   }
 }
@@ -22,4 +23,17 @@ resource "aws_eip" "this" {
   domain                    = local.eip.domain
   network_border_group      = local.eip.network_border_group
   public_ipv4_pool          = local.eip.public_ipv4_pool
+}
+
+resource "time_sleep" "eip_attach" {
+  count = local.eip.create ? 1 : 0
+  depends_on = [
+    aws_eip.this,
+  ]
+
+  triggers = {
+    id = aws_eip.this[0].id,
+  }
+
+  create_duration = local.eip.attach_duration
 }
