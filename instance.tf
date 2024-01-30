@@ -86,6 +86,19 @@ locals {
 
 resource "aws_instance" "this" {
   count = local.instance_create ? 1 : 0
+  depends_on = [
+    aws_s3_bucket.ansible_s3_provisioning,
+    aws_s3_object.ansible_s3_provisioning,
+    aws_iam_role_policy.ansible_s3_provisioning,
+    aws_iam_role.this,
+    aws_iam_role_policy_attachment.this,
+    aws_iam_instance_profile.this,
+    aws_security_group.default,
+    aws_security_group_rule.default_egress,
+    aws_security_group_rule.egress,
+    aws_security_group_rule.ingress,
+    aws_security_group_rule.provisioner,
+  ]
 
   ami                                  = local.instance_input.ami
   associate_public_ip_address          = local.instance_input.associate_public_ip_address
