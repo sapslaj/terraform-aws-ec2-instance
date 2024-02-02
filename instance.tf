@@ -100,6 +100,7 @@ locals {
       # shallow single blocks
       for key in [
         "cpu_options",
+        "credit_specification",
         "enclave_options",
         "instance_market_options",
         "launch_template",
