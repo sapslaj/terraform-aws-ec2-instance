@@ -15,6 +15,11 @@ module "ec2_instance" {
 
   instance = {
     instance_type = "t3a.medium"
+
+    # ignore changes to the AMI ID
+    lifecyle_ignore = [
+      "ami",
+    ]
   }
 }
 ```
