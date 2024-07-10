@@ -6,7 +6,10 @@ locals {
     var.ami.id == null,
   ])
   ami_lookup_name = {
-    ubuntu = ["ubuntu/images/hvm-ssd${var.ami.version == "noble" ? "-gp3" : ""}/ubuntu-${var.ami.version}-${var.ami.arch}-server-*"]
+    ubuntu = [
+      "ubuntu/images/hvm-ssd-gp3/ubuntu-${var.ami.version}-${var.ami.arch}-server-*",
+      "ubuntu/images/hvm-ssd/ubuntu-${var.ami.version}-${var.ami.arch}-server-*",
+    ]
   }
   ami_lookup_owners = {
     ubuntu = ["099720109477"]
